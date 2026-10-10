@@ -1,179 +1,88 @@
 import { useCallback, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
-import {
-  Button,
-  Chip,
-  EmptyState,
-  ErrorState,
-  ItemCard,
-  LoadingState,
-  Screen,
-  StarRating,
-  StatusBadge,
-  TextField,
-} from '../../src/components';
-import { CATEGORIAS, RENTAL_STATUS_LABELS } from '../../src/constants';
+import { CategoryGrid, EmptyState, ErrorState, ItemCard, LoadingState, SearchBar } from '../../src/components';
 import { useFocusQuery } from '../../src/hooks/useFocusQuery';
 import { buscarItens } from '../../src/repositories/items';
-import { useSession } from '../../src/store/session';
-import { colors, radius, spacing, typography } from '../../src/theme';
+import { buscarUsuario } from '../../src/repositories/users';
+import { useUsuarioId } from '../../src/store/session';
+import { colors, spacing, typography } from '../../src/theme';
 
-// Etapas 1 e 2: itens vindos do banco + vitrine provisória dos componentes.
-// A tela Início de verdade (busca, categorias, itens) entra na etapa 5.
 export default function InicioScreen() {
-  const userId = useSession((s) => s.userId);
-  const { dados: itens, carregando, erro, recarregar } = useFocusQuery(
-    useCallback(() => buscarItens({ excluirDonoId: userId ?? undefined }), [userId]),
-  );
-  const [categoria, setCategoria] = useState('ferramentas');
-  const [nota, setNota] = useState(4);
+  const userId = useUsuarioId();
   const [texto, setTexto] = useState('');
 
-  return (
-    <Screen scroll>
-      <Text style={styles.aviso}>Tela provisória. A tela Início real vem na etapa 5.</Text>
-
-      <Section title="Itens disponíveis (do banco)">
-        {carregando ? <LoadingState /> : null}
-        {erro ? <ErrorState message={erro} onRetry={recarregar} /> : null}
-        {itens?.length === 0 ? <EmptyState title="Nenhum item disponível" /> : null}
-        {itens?.map((item) => (
-          <ItemCard key={item.id} item={item} onPress={() => router.push(`/item/${item.id}`)} />
-        ))}
-      </Section>
-
-      <Text style={styles.aviso}>Abaixo: vitrine dos componentes da etapa 1.</Text>
-
-      <Section title="Navegação">
-        <Button title="Buscar itens" icon="search" onPress={() => router.push('/busca')} />
-        <Button title="Detalhe de um item" variant="outline" onPress={() => router.push('/item/1')} />
-        <Button title="Detalhe de um aluguel" variant="outline" onPress={() => router.push('/aluguel/1')} />
-        <Button title="Perfil público" variant="outline" onPress={() => router.push('/usuario/2')} />
-      </Section>
-
-      <Section title="Botões">
-        <Button title="Principal" icon="checkmark" />
-        <Button title="Secundário" variant="secondary" />
-        <Button title="Contorno" variant="outline" />
-        <Button title="Perigo" variant="danger" icon="trash-outline" />
-        <Button title="Carregando" loading />
-        <Button title="Desativado" disabled />
-      </Section>
-
-      <Section title="Campo de texto">
-        <TextField label="Nome" placeholder="Seu nome completo" value={texto} onChangeText={setTexto} />
-        <TextField label="E-mail" value="email-invalido" error="Informe um e-mail válido." onChangeText={() => {}} />
-        <TextField label="Descrição" multiline hint="Até 500 caracteres." />
-      </Section>
-
-      <Section title="Categorias (chips)">
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
-          {CATEGORIAS.map((c) => (
-            <Chip
-              key={c.value}
-              label={c.label}
-              icon={/** @type {'cube'} */ (c.icon)}
-              selected={categoria === c.value}
-              onPress={() => setCategoria(c.value)}
-            />
-          ))}
-        </ScrollView>
-      </Section>
-
-      <Section title="Cartão de item">
-        <ItemCard
-          item={{
-            id: 1,
-            titulo: 'Furadeira de impacto 650W',
-            categoria: 'ferramentas',
-            valor_diaria: 1500,
-            bairro: 'Centro',
-            cidade: 'Campinas',
-            dono_nota: 4.5,
-            dono_avaliacoes: 12,
-          }}
-          onPress={() => router.push('/item/1')}
-        />
-        <ItemCard
-          showStatus
-          item={{
-            id: 2,
-            titulo: 'Violão acústico',
-            categoria: 'instrumentos',
-            valor_diaria: 2000,
-            bairro: 'Taquaral',
-            cidade: 'Campinas',
-            status: 'pausado',
-          }}
-        />
-      </Section>
-
-      <Section title="Estrelas">
-        <StarRating value={4.5} count={12} showValue />
-        <StarRating value={0} count={0} />
-        <Text style={typography.small}>Toque para escolher a nota:</Text>
-        <StarRating value={nota} onChange={setNota} size={36} />
-      </Section>
-
-      <Section title="Etiquetas de status">
-        <View style={styles.badges}>
-          {Object.keys(RENTAL_STATUS_LABELS).map((s) => (
-            <StatusBadge key={s} status={/** @type {'solicitado'} */ (s)} />
-          ))}
-          <StatusBadge status="disponivel" />
-          <StatusBadge status="pausado" />
-        </View>
-      </Section>
-
-      <Section title="Estados de tela">
-        <View style={styles.stateBox}>
-          <LoadingState />
-        </View>
-        <View style={styles.stateBox}>
-          <EmptyState title="Nenhum item encontrado" message="Tente outra busca ou mude os filtros." />
-        </View>
-        <View style={styles.stateBox}>
-          <ErrorState onRetry={() => {}} />
-        </View>
-      </Section>
-    </Screen>
+  const { dados, carregando, atualizando, erro, recarregar } = useFocusQuery(
+    useCallback(async () => {
+      const [usuario, itens] = await Promise.all([
+        buscarUsuario(userId),
+        buscarItens({ excluirDonoId: userId, limite: 40 }),
+      ]);
+      // Itens da mesma cidade do usuário aparecem primeiro.
+      const cidade = usuario?.cidade.toLowerCase();
+      const ordenados = [...itens].sort(
+        (a, b) => Number(b.cidade.toLowerCase() === cidade) - Number(a.cidade.toLowerCase() === cidade),
+      );
+      return { usuario, itens: ordenados };
+    }, [userId]),
   );
-}
 
-/** @param {{ title: string, children: React.ReactNode }} props */
-function Section({ title, children }) {
+  function buscar() {
+    router.push({ pathname: '/busca', params: { texto: texto.trim() } });
+  }
+
+  if (carregando) return <LoadingState />;
+  if (erro || !dados) return <ErrorState message={erro ?? undefined} onRetry={recarregar} />;
+
+  const primeiroNome = dados.usuario?.nome.split(' ')[0] ?? '';
+
   return (
-    <View style={styles.section}>
-      <Text style={typography.subtitle}>{title}</Text>
-      {children}
-    </View>
+    <FlatList
+      data={dados.itens}
+      keyExtractor={(i) => String(i.id)}
+      contentContainerStyle={styles.lista}
+      keyboardShouldPersistTaps="handled"
+      refreshControl={<RefreshControl refreshing={atualizando} onRefresh={recarregar} />}
+      ListHeaderComponent={
+        <View style={styles.header}>
+          <View>
+            <Text style={typography.title}>Olá, {primeiroNome}!</Text>
+            <Text style={styles.subtitulo}>Alugue por dia e economize: não precisa comprar.</Text>
+          </View>
+          <SearchBar value={texto} onChangeText={setTexto} onSubmit={buscar} />
+          <Text style={typography.subtitle}>Categorias</Text>
+          <CategoryGrid onSelect={(categoria) => router.push({ pathname: '/busca', params: { categoria } })} />
+          <Text style={[typography.subtitle, styles.secao]}>Disponíveis para alugar</Text>
+        </View>
+      }
+      ListEmptyComponent={
+        <EmptyState
+          icon="search-outline"
+          title="Nenhum item disponível agora"
+          message="Volte mais tarde ou anuncie um item seu na aba Anunciar."
+        />
+      }
+      renderItem={({ item }) => <ItemCard item={item} onPress={() => router.push(`/item/${item.id}`)} />}
+    />
   );
 }
 
 const styles = StyleSheet.create({
-  aviso: {
-    ...typography.small,
-    backgroundColor: colors.warningSoft,
-    color: colors.warning,
-    padding: spacing.md,
-    borderRadius: radius.md,
-  },
-  section: {
+  lista: {
+    flexGrow: 1,
+    padding: spacing.lg,
     gap: spacing.md,
   },
-  chips: {
-    gap: spacing.sm,
+  header: {
+    gap: spacing.lg,
+    marginBottom: spacing.xs,
   },
-  badges: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
+  subtitulo: {
+    ...typography.body,
+    color: colors.textMuted,
+    marginTop: spacing.xs,
   },
-  stateBox: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.lg,
-    backgroundColor: colors.surface,
+  secao: {
+    marginTop: spacing.sm,
   },
 });

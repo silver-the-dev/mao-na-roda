@@ -253,6 +253,7 @@ export function listarMeusItens(donoId) {
  * @property {string} [bairro]
  * @property {string} [cidade]
  * @property {number} [excluirDonoId]  esconde os itens do próprio usuário
+ * @property {number} [donoId]         só itens deste dono (perfil público)
  * @property {number} [limite]
  */
 
@@ -293,6 +294,10 @@ export function buscarItens(filtros) {
   if (filtros.cidade) {
     condicoes.push('x.cidade = ? COLLATE NOCASE');
     params.push(filtros.cidade.trim());
+  }
+  if (filtros.donoId != null) {
+    condicoes.push('x.dono_id = ?');
+    params.push(filtros.donoId);
   }
   if (filtros.excluirDonoId != null) {
     condicoes.push('x.dono_id <> ?');

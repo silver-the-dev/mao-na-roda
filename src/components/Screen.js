@@ -28,7 +28,10 @@ export default function Screen({ children, scroll = false, padded = true, safeTo
   );
 
   return (
-    <SafeAreaView style={styles.safe} edges={safeTop ? ['top', 'left', 'right'] : ['left', 'right']}>
+    <SafeAreaView
+      style={styles.safe}
+      edges={[...(safeTop ? /** @type {const} */ (['top']) : []), 'left', 'right', ...(footer ? /** @type {const} */ (['bottom']) : [])]}
+    >
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
