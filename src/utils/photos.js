@@ -46,3 +46,28 @@ export function apagarTodasFotos() {
   const dir = new Directory(Paths.document, NOME_PASTA);
   if (dir.exists) dir.delete();
 }
+
+/**
+ * Copia várias fotos para a pasta do app, mantendo a ordem. Fotos que já
+ * estavam na pasta não são copiadas de novo. Se uma cópia falhar, as cópias
+ * feitas nesta chamada são apagadas.
+ * @param {string[]} uris
+ * @returns {Promise<{ uris: string[], novas: string[] }>} `novas` são as cópias criadas agora
+ */
+export async function salvarFotos(uris) {
+  /** @type {string[]} */
+  const resultado = [];
+  /** @type {string[]} */
+  const novas = [];
+  try {
+    for (const uri of uris) {
+      const salva = await salvarFoto(uri);
+      resultado.push(salva);
+      if (salva !== uri) novas.push(salva);
+    }
+  } catch (e) {
+    novas.forEach(apagarFoto);
+    throw e;
+  }
+  return { uris: resultado, novas };
+}

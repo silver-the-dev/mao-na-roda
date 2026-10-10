@@ -3,7 +3,7 @@ import { CATEGORIAS, CONSERVACOES } from '../constants';
 import { RegraDeNegocioError } from '../domain/errors';
 import { STATUS_ATIVOS } from '../domain/rentalStatus';
 import { normalizarTexto, nowISO } from '../utils/format';
-import { apagarFoto } from '../utils/photos';
+import { apagarFoto, salvarFotos } from '../utils/photos';
 import { listarFotosNaTransacao, substituirFotosNaTransacao } from './itemPhotos';
 
 /**
@@ -324,4 +324,39 @@ export function listarLocalidades() {
     );
     return /** @type {{ cidade: string, bairro: string }[]} */ (linhas);
   });
+}
+
+/**
+ * Copia as fotos escolhidas para a pasta do app e cria o item. Se a
+ * gravação falhar, as cópias feitas são apagadas.
+ * @param {number} donoId
+ * @param {DadosItem} dados
+ * @param {string[]} fotosEscolhidas URIs da galeria (ou já salvas)
+ * @returns {Promise<number>}
+ */
+export async function criarItemComFotos(donoId, dados, fotosEscolhidas) {
+  const { uris, novas } = await salvarFotos(fotosEscolhidas);
+  try {
+    return await criarItem(donoId, dados, uris);
+  } catch (e) {
+    novas.forEach(apagarFoto);
+    throw e;
+  }
+}
+
+/**
+ * Copia fotos novas e atualiza o item; as fotos removidas são apagadas.
+ * @param {number} itemId
+ * @param {number} donoId
+ * @param {DadosItem} dados
+ * @param {string[]} fotosEscolhidas
+ */
+export async function atualizarItemComFotos(itemId, donoId, dados, fotosEscolhidas) {
+  const { uris, novas } = await salvarFotos(fotosEscolhidas);
+  try {
+    await atualizarItem(itemId, donoId, dados, uris);
+  } catch (e) {
+    novas.forEach(apagarFoto);
+    throw e;
+  }
 }
