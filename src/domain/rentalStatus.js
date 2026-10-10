@@ -139,3 +139,44 @@ export function acoesDisponiveis(aluguel, usuarioId, agora) {
     (acao) => motivoBloqueio(aluguel, usuarioId, acao, agora) === null,
   );
 }
+
+/**
+ * @typedef {Object} EtapaLinhaDoTempo
+ * @property {string} rotulo
+ * @property {string | null} quando  data/hora ISO em que aconteceu
+ * @property {'feito' | 'pendente' | 'negativo'} estado
+ */
+
+/**
+ * Etapas para a linha do tempo do aluguel, na ordem em que acontecem.
+ * @param {{ status: import('../types').RentalStatus, criado_em: string, respondido_em: string | null,
+ *           retirado_em: string | null, devolvido_em: string | null, concluido_em: string | null,
+ *           cancelado_em: string | null }} a
+ * @returns {EtapaLinhaDoTempo[]}
+ */
+export function etapasLinhaDoTempo(a) {
+  /** @type {EtapaLinhaDoTempo[]} */
+  const etapas = [{ rotulo: 'Pedido enviado', quando: a.criado_em, estado: 'feito' }];
+
+  if (a.status === 'recusado') {
+    etapas.push({ rotulo: 'Pedido recusado', quando: a.respondido_em, estado: 'negativo' });
+    return etapas;
+  }
+  if (a.status === 'cancelado') {
+    if (a.respondido_em) etapas.push({ rotulo: 'Pedido aprovado', quando: a.respondido_em, estado: 'feito' });
+    etapas.push({ rotulo: 'Aluguel cancelado', quando: a.cancelado_em, estado: 'negativo' });
+    return etapas;
+  }
+
+  /** @type {[string, string | null][]} */
+  const fluxo = [
+    ['Pedido aprovado', a.respondido_em],
+    ['Item retirado', a.retirado_em],
+    ['Item devolvido', a.devolvido_em],
+    ['Aluguel concluído', a.concluido_em],
+  ];
+  for (const [rotulo, quando] of fluxo) {
+    etapas.push({ rotulo, quando, estado: quando ? 'feito' : 'pendente' });
+  }
+  return etapas;
+}
