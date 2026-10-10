@@ -19,8 +19,8 @@ export default function CategoryGrid({ onSelect }) {
           style={({ pressed }) => [styles.tile, pressed && styles.pressed]}
         >
           <Ionicons name={/** @type {'cube'} */ (c.icon)} size={30} color={colors.primary} />
-          <Text style={styles.label} numberOfLines={2}>
-            {c.label}
+          <Text style={styles.label} numberOfLines={1} adjustsFontSizeToFit>
+            {c.curto}
           </Text>
         </Pressable>
       ))}

@@ -15,7 +15,7 @@ import {
   StarRating,
   StatusBadge,
 } from '../../../src/components';
-import { CATEGORIAS, categoriaLabel, conservacaoLabel } from '../../../src/constants';
+import { categoriaIcone, categoriaLabel, conservacaoLabel } from '../../../src/constants';
 import { useFocusQuery } from '../../../src/hooks/useFocusQuery';
 import { buscarItem } from '../../../src/repositories/items';
 import { listarDatasOcupadas } from '../../../src/repositories/rentals';
@@ -43,7 +43,7 @@ export default function ItemDetalheScreen() {
   }
 
   const meu = item.dono_id === userId;
-  const icone = CATEGORIAS.find((c) => c.value === item.categoria)?.icon ?? 'cube';
+  const icone = categoriaIcone(item.categoria);
 
   let rodape;
   if (meu) {

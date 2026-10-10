@@ -102,7 +102,7 @@ export default function BuscaScreen() {
         {CATEGORIAS.map((c) => (
           <Chip
             key={c.value}
-            label={c.label}
+            label={c.curto}
             icon={/** @type {'cube'} */ (c.icon)}
             selected={filtros.categoria === c.value}
             onPress={() => aplicar({ categoria: c.value })}

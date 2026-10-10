@@ -1,13 +1,13 @@
 // Listas fixas usadas em formulários, filtros e etiquetas.
 
-/** @type {{ value: import('../types').Categoria, label: string, icon: string }[]} */
+/** @type {{ value: import('../types').Categoria, label: string, curto: string, icon: string }[]} */
 export const CATEGORIAS = [
-  { value: 'ferramentas', label: 'Ferramentas', icon: 'construct' },
-  { value: 'eletronicos', label: 'Eletrônicos', icon: 'laptop' },
-  { value: 'instrumentos', label: 'Instrumentos musicais', icon: 'musical-notes' },
-  { value: 'cameras', label: 'Câmeras', icon: 'camera' },
-  { value: 'utensilios', label: 'Utensílios', icon: 'restaurant' },
-  { value: 'outros', label: 'Outros', icon: 'cube' },
+  { value: 'ferramentas', label: 'Ferramentas', curto: 'Ferramentas', icon: 'construct' },
+  { value: 'eletronicos', label: 'Eletrônicos', curto: 'Eletrônicos', icon: 'laptop' },
+  { value: 'instrumentos', label: 'Instrumentos musicais', curto: 'Instrumentos', icon: 'musical-notes' },
+  { value: 'cameras', label: 'Câmeras', curto: 'Câmeras', icon: 'camera' },
+  { value: 'utensilios', label: 'Utensílios', curto: 'Utensílios', icon: 'restaurant' },
+  { value: 'outros', label: 'Outros', curto: 'Outros', icon: 'cube' },
 ];
 
 /** @type {{ value: import('../types').Conservacao, label: string }[]} */
@@ -39,6 +39,11 @@ export const MAX_FOTOS_ITEM = 5;
 
 // Hora de corte da retirada: retirar a partir deste horário não cobra o primeiro dia.
 export const HORA_CORTE_RETIRADA = 18;
+
+/** @param {string} value */
+export function categoriaIcone(value) {
+  return CATEGORIAS.find((c) => c.value === value)?.icon ?? 'cube';
+}
 
 /** @param {string} value */
 export function categoriaLabel(value) {

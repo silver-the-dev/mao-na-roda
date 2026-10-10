@@ -15,7 +15,7 @@ export default function ProfileHeader({ perfil }) {
     <View style={styles.wrapper}>
       <Avatar nome={perfil.nome} uri={perfil.foto_uri} size={96} />
       <Text style={[typography.title, styles.centro]}>{perfil.nome}</Text>
-      <Text style={typography.small}>
+      <Text style={[typography.small, styles.centro]}>
         {perfil.bairro}, {perfil.cidade} · no app desde {MESES[desde.getMonth()]}/{desde.getFullYear()}
       </Text>
       <StarRating value={perfil.nota_media} count={perfil.total_avaliacoes} showValue size={24} />

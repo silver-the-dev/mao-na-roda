@@ -1,7 +1,7 @@
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, radius, shadow, spacing, typography } from '../theme';
-import { CATEGORIAS } from '../constants';
+import { categoriaIcone } from '../constants';
 import { formatBRL } from '../utils/format';
 import StarRating from './StarRating';
 import StatusBadge from './StatusBadge';
@@ -25,7 +25,7 @@ import StatusBadge from './StatusBadge';
  * @param {{ item: ItemCardData, onPress?: () => void, showStatus?: boolean }} props
  */
 export default function ItemCard({ item, onPress, showStatus = false }) {
-  const icone = CATEGORIAS.find((c) => c.value === item.categoria)?.icon ?? 'cube';
+  const icone = categoriaIcone(item.categoria);
 
   return (
     <Pressable

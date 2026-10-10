@@ -15,7 +15,7 @@ import {
   StatusBadge,
   Timeline,
 } from '../../../src/components';
-import { HORA_CORTE_RETIRADA } from '../../../src/constants';
+import { HORA_CORTE_RETIRADA, categoriaIcone } from '../../../src/constants';
 import { mensagemDeErro } from '../../../src/domain/errors';
 import { contarDiarias } from '../../../src/domain/pricing';
 import { TRANSICOES, acoesDisponiveis, etapasLinhaDoTempo, prazoCancelamento } from '../../../src/domain/rentalStatus';
@@ -177,7 +177,7 @@ export default function AluguelDetalheScreen() {
           <Image source={{ uri: a.item.foto_uri }} style={styles.itemFoto} />
         ) : (
           <View style={[styles.itemFoto, styles.itemFotoVazia]}>
-            <Ionicons name="cube" size={32} color={colors.primary} />
+            <Ionicons name={/** @type {'cube'} */ (categoriaIcone(a.item.categoria))} size={32} color={colors.primary} />
           </View>
         )}
         <View style={styles.itemInfo}>

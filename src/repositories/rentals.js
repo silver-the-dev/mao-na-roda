@@ -25,6 +25,7 @@ import { hojeISO, nowISO } from '../utils/format';
  * Aluguel para listas: com título e foto do item e nome da outra pessoa.
  * @typedef {Aluguel & {
  *   item_titulo: string,
+ *   item_categoria: string,
  *   item_foto_uri: string | null,
  *   outra_parte_id: number,
  *   outra_parte_nome: string,
@@ -296,7 +297,7 @@ export function listarAlugueis(usuarioId, papel, status) {
 
   return comBanco(async (db) => {
     const linhas = await db.getAllAsync(
-      `SELECT r.*, i.titulo AS item_titulo,
+      `SELECT r.*, i.titulo AS item_titulo, i.categoria AS item_categoria,
               (SELECT uri FROM item_photos f WHERE f.item_id = i.id ORDER BY f.ordem, f.id LIMIT 1) AS item_foto_uri,
               u.id AS outra_parte_id, u.nome AS outra_parte_nome
          FROM rentals r

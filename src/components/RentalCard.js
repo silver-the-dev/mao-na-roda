@@ -1,5 +1,6 @@
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { categoriaIcone } from '../constants';
 import { colors, radius, shadow, spacing, typography } from '../theme';
 import { formatBRL, formatDate } from '../utils/format';
 import StatusBadge from './StatusBadge';
@@ -32,7 +33,7 @@ export default function RentalCard({ aluguel, papel, destaque, onPress }) {
           <Image source={{ uri: aluguel.item_foto_uri }} style={styles.foto} />
         ) : (
           <View style={[styles.foto, styles.fotoVazia]}>
-            <Ionicons name="cube" size={28} color={colors.primary} />
+            <Ionicons name={/** @type {'cube'} */ (categoriaIcone(aluguel.item_categoria))} size={28} color={colors.primary} />
           </View>
         )}
         <View style={styles.info}>
