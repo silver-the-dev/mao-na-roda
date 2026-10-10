@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import {
@@ -14,18 +14,36 @@ import {
   TextField,
 } from '../../src/components';
 import { CATEGORIAS, RENTAL_STATUS_LABELS } from '../../src/constants';
+import { useFocusQuery } from '../../src/hooks/useFocusQuery';
+import { buscarItens } from '../../src/repositories/items';
+import { useSession } from '../../src/store/session';
 import { colors, radius, spacing, typography } from '../../src/theme';
 
-// Etapa 1: vitrine provisória dos componentes base e da navegação.
+// Etapas 1 e 2: itens vindos do banco + vitrine provisória dos componentes.
 // A tela Início de verdade (busca, categorias, itens) entra na etapa 5.
 export default function InicioScreen() {
+  const userId = useSession((s) => s.userId);
+  const { dados: itens, carregando, erro, recarregar } = useFocusQuery(
+    useCallback(() => buscarItens({ excluirDonoId: userId ?? undefined }), [userId]),
+  );
   const [categoria, setCategoria] = useState('ferramentas');
   const [nota, setNota] = useState(4);
   const [texto, setTexto] = useState('');
 
   return (
     <Screen scroll>
-      <Text style={styles.aviso}>Vitrine provisória da etapa 1. A tela Início real vem na etapa 5.</Text>
+      <Text style={styles.aviso}>Tela provisória. A tela Início real vem na etapa 5.</Text>
+
+      <Section title="Itens disponíveis (do banco)">
+        {carregando ? <LoadingState /> : null}
+        {erro ? <ErrorState message={erro} onRetry={recarregar} /> : null}
+        {itens?.length === 0 ? <EmptyState title="Nenhum item disponível" /> : null}
+        {itens?.map((item) => (
+          <ItemCard key={item.id} item={item} onPress={() => router.push(`/item/${item.id}`)} />
+        ))}
+      </Section>
+
+      <Text style={styles.aviso}>Abaixo: vitrine dos componentes da etapa 1.</Text>
 
       <Section title="Navegação">
         <Button title="Buscar itens" icon="search" onPress={() => router.push('/busca')} />

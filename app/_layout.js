@@ -1,11 +1,49 @@
+import { useCallback, useEffect, useState } from 'react';
+import { View } from 'react-native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { ErrorState, LoadingState } from '../src/components';
+import { inicializarBanco } from '../src/db';
 import { useSession } from '../src/store/session';
 import { colors } from '../src/theme';
 
 export default function RootLayout() {
   const logado = useSession((s) => s.userId !== null);
+  const [estado, setEstado] = useState(/** @type {'carregando' | 'pronto' | 'erro'} */ ('carregando'));
+
+  const iniciar = useCallback(() => {
+    inicializarBanco()
+      .then(() => setEstado('pronto'))
+      .catch((e) => {
+        console.error('Falha ao abrir o banco de dados', e);
+        setEstado('erro');
+      });
+  }, []);
+
+  useEffect(() => {
+    iniciar();
+  }, [iniciar]);
+
+  function tentarDeNovo() {
+    setEstado('carregando');
+    iniciar();
+  }
+
+  if (estado !== 'pronto') {
+    return (
+      <SafeAreaProvider>
+        <StatusBar style="dark" />
+        <View style={{ flex: 1, backgroundColor: colors.background }}>
+          {estado === 'carregando' ? (
+            <LoadingState message="Preparando o app..." />
+          ) : (
+            <ErrorState message="Não foi possível abrir o banco de dados do app." onRetry={tentarDeNovo} />
+          )}
+        </View>
+      </SafeAreaProvider>
+    );
+  }
 
   return (
     <SafeAreaProvider>

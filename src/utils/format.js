@@ -76,3 +76,20 @@ export function formatDateTime(iso) {
 export function nowISO() {
   return new Date().toISOString();
 }
+
+/** Data local de hoje no formato AAAA-MM-DD. */
+export function hojeISO() {
+  return toISODate(new Date());
+}
+
+/**
+ * Texto sem acentos e em minúsculas, para buscas ("Câmera" -> "camera").
+ * @param {string} texto
+ */
+export function normalizarTexto(texto) {
+  return texto
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+}
