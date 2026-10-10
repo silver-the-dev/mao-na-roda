@@ -2,6 +2,7 @@ import { comBanco } from '../db/client';
 import { RegraDeNegocioError } from '../domain/errors';
 import { nowISO } from '../utils/format';
 import { hashSenha } from '../utils/hash';
+import { apagarFoto, salvarFoto } from '../utils/photos';
 
 /**
  * Perfil público: dados do usuário mais reputação calculada.
@@ -124,4 +125,24 @@ export async function atualizarPerfil(id, dados) {
       id,
     ]);
   });
+}
+
+/**
+ * Atualiza o perfil e a foto. Uma foto nova é copiada para a pasta do app;
+ * a foto anterior é apagada quando deixa de ser usada.
+ * @param {number} id
+ * @param {{ nome: string, telefone: string | null, bairro: string, cidade: string }} dados
+ * @param {string | null} fotoEscolhida URI da galeria, a foto atual ou null para remover
+ */
+export async function atualizarPerfilComFoto(id, dados, fotoEscolhida) {
+  const atual = await buscarUsuario(id);
+  if (!atual) throw new RegraDeNegocioError('Usuário não encontrado.');
+  const foto = fotoEscolhida ? await salvarFoto(fotoEscolhida) : null;
+  try {
+    await atualizarPerfil(id, { ...dados, foto_uri: foto });
+  } catch (e) {
+    if (foto && foto !== atual.foto_uri) apagarFoto(foto);
+    throw e;
+  }
+  if (atual.foto_uri && atual.foto_uri !== foto) apagarFoto(atual.foto_uri);
 }

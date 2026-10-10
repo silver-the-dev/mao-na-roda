@@ -1,23 +1,43 @@
 import { useCallback, useState } from 'react';
 import { Alert, StyleSheet, Text, View } from 'react-native';
-import { Avatar, Button, ErrorState, LoadingState, Screen, StarRating } from '../../src/components';
+import { router } from 'expo-router';
+import {
+  Button,
+  Card,
+  EmptyState,
+  ErrorState,
+  InfoRow,
+  LoadingState,
+  ReviewCard,
+  Screen,
+} from '../../src/components';
+import ProfileHeader from '../../src/components/ProfileHeader';
 import { restaurarDadosDemo } from '../../src/db';
 import { mensagemDeErro } from '../../src/domain/errors';
 import { useFocusQuery } from '../../src/hooks/useFocusQuery';
+import { listarAvaliacoesRecebidas } from '../../src/repositories/reviews';
 import { buscarPerfilPublico } from '../../src/repositories/users';
-import { useSession } from '../../src/store/session';
-import { colors, radius, spacing, typography } from '../../src/theme';
+import { useSession, useUsuarioId } from '../../src/store/session';
+import { spacing, typography } from '../../src/theme';
 
-// Etapa 2: resumo do perfil vindo do banco + configurações.
-// Edição de perfil e lista de avaliações entram na etapa 7.
-export default function PerfilScreen() {
-  const userId = useSession((s) => s.userId);
+export default function MeuPerfilScreen() {
+  const userId = useUsuarioId();
   const signOut = useSession((s) => s.signOut);
   const [restaurando, setRestaurando] = useState(false);
 
-  const { dados: perfil, carregando, erro, recarregar } = useFocusQuery(
-    useCallback(() => buscarPerfilPublico(/** @type {number} */ (userId)), [userId]),
+  const { dados, carregando, erro, recarregar } = useFocusQuery(
+    useCallback(async () => {
+      const [perfil, avaliacoes] = await Promise.all([buscarPerfilPublico(userId), listarAvaliacoesRecebidas(userId)]);
+      return { perfil, avaliacoes };
+    }, [userId]),
   );
+
+  function confirmarSaida() {
+    Alert.alert('Sair da conta?', 'Você poderá entrar de novo com seu e-mail e senha.', [
+      { text: 'Cancelar', style: 'cancel' },
+      { text: 'Sair', style: 'destructive', onPress: () => signOut() },
+    ]);
+  }
 
   function confirmarRestauracao() {
     Alert.alert(
@@ -34,7 +54,7 @@ export default function PerfilScreen() {
     setRestaurando(true);
     try {
       await restaurarDadosDemo();
-      signOut();
+      await signOut();
     } catch (e) {
       setRestaurando(false);
       Alert.alert('Não foi possível restaurar', mensagemDeErro(e));
@@ -42,28 +62,51 @@ export default function PerfilScreen() {
   }
 
   if (carregando) return <LoadingState />;
-  if (erro || !perfil) return <ErrorState message={erro ?? 'Perfil não encontrado.'} onRetry={recarregar} />;
+  if (erro || !dados?.perfil) return <ErrorState message={erro ?? 'Perfil não encontrado.'} onRetry={recarregar} />;
+  const { perfil, avaliacoes } = dados;
 
   return (
     <Screen scroll>
-      <View style={styles.cabecalho}>
-        <Avatar nome={perfil.nome} uri={perfil.foto_uri} size={88} />
-        <Text style={typography.title}>{perfil.nome}</Text>
-        <Text style={typography.small}>
-          {perfil.bairro}, {perfil.cidade}
-        </Text>
-        <StarRating value={perfil.nota_media} count={perfil.total_avaliacoes} showValue size={22} />
-      </View>
+      <ProfileHeader perfil={perfil} />
 
-      <View style={styles.numeros}>
-        <Numero valor={perfil.alugueis_concluidos} rotulo="aluguéis concluídos" />
-        <Numero valor={perfil.itens_anunciados} rotulo="itens anunciados" />
-      </View>
-
-      <Text style={styles.aviso}>Edição do perfil e avaliações recebidas: etapa 7.</Text>
+      <Card title="Meus dados">
+        <InfoRow icon="mail-outline" label="E-mail" value={perfil.email} />
+        <InfoRow icon="call-outline" label="Telefone" value={perfil.telefone ?? 'Não informado'} />
+        <InfoRow icon="location-outline" label="Local" value={`${perfil.bairro}, ${perfil.cidade}`} />
+        <Button title="Editar perfil" icon="create-outline" variant="outline" onPress={() => router.push('/perfil/editar')} />
+        <Button
+          title="Ver meu perfil público"
+          icon="eye-outline"
+          variant="ghost"
+          onPress={() => router.push(`/usuario/${userId}`)}
+        />
+      </Card>
 
       <View style={styles.secao}>
-        <Text style={typography.subtitle}>Configurações</Text>
+        <Text style={typography.subtitle}>Avaliações recebidas</Text>
+        {avaliacoes.length === 0 ? (
+          <EmptyState
+            icon="star-outline"
+            title="Você ainda não recebeu avaliações"
+            message="Depois de cada aluguel concluído, a outra pessoa pode avaliar você."
+          />
+        ) : (
+          avaliacoes.slice(0, 3).map((r) => <ReviewCard key={r.id} avaliacao={r} />)
+        )}
+        {avaliacoes.length > 3 ? (
+          <Button
+            compact
+            variant="ghost"
+            title={`Ver todas as ${avaliacoes.length} avaliações`}
+            onPress={() => router.push(`/usuario/${userId}`)}
+          />
+        ) : null}
+      </View>
+
+      <Card title="Configurações">
+        <Text style={typography.small}>
+          Para a apresentação: apaga tudo o que foi criado e volta aos dados iniciais de demonstração.
+        </Text>
         <Button
           title="Restaurar dados de demonstração"
           icon="refresh"
@@ -71,55 +114,14 @@ export default function PerfilScreen() {
           loading={restaurando}
           onPress={confirmarRestauracao}
         />
-        <Button title="Sair" icon="log-out-outline" variant="outline" onPress={signOut} disabled={restaurando} />
-      </View>
+        <Button title="Sair da conta" icon="log-out-outline" variant="outline" onPress={confirmarSaida} disabled={restaurando} />
+      </Card>
     </Screen>
   );
 }
 
-/** @param {{ valor: number, rotulo: string }} props */
-function Numero({ valor, rotulo }) {
-  return (
-    <View style={styles.numero}>
-      <Text style={styles.numeroValor}>{valor}</Text>
-      <Text style={styles.numeroRotulo}>{rotulo}</Text>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
-  cabecalho: {
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  numeros: {
-    flexDirection: 'row',
-    gap: spacing.md,
-  },
-  numero: {
-    flex: 1,
-    alignItems: 'center',
-    padding: spacing.md,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
-  },
-  numeroValor: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: colors.primaryDark,
-  },
-  numeroRotulo: {
-    ...typography.small,
-    textAlign: 'center',
-  },
-  aviso: {
-    ...typography.small,
-    textAlign: 'center',
-  },
   secao: {
     gap: spacing.md,
-    marginTop: spacing.md,
   },
 });

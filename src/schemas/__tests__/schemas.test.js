@@ -1,5 +1,6 @@
 import { cadastroSchema, loginSchema } from '../auth';
 import { itemSchema, paraDadosItem, paraFormularioItem } from '../item';
+import { avaliacaoSchema, perfilSchema } from '../perfil';
 
 describe('auth', () => {
   it('login exige e-mail válido e senha', () => {
@@ -46,5 +47,19 @@ describe('item', () => {
     const dados = paraDadosItem(form);
     const item = { ...dados, id: 1, dono_id: 1, status: /** @type {const} */ ('disponivel'), criado_em: '' };
     expect(paraDadosItem(paraFormularioItem(item))).toEqual(dados);
+  });
+});
+
+describe('perfil e avaliação', () => {
+  it('telefone é opcional, mas precisa ter DDD', () => {
+    const base = { nome: 'Ana', telefone: '', bairro: 'Itaquera', cidade: 'São Paulo' };
+    expect(perfilSchema.safeParse(base).success).toBe(true);
+    expect(perfilSchema.safeParse({ ...base, telefone: '(11) 98765-4321' }).success).toBe(true);
+    expect(perfilSchema.safeParse({ ...base, telefone: '98765' }).success).toBe(false);
+  });
+
+  it('avaliação exige nota de 1 a 5', () => {
+    expect(avaliacaoSchema.safeParse({ nota: 0, comentario: '' }).success).toBe(false);
+    expect(avaliacaoSchema.safeParse({ nota: 5, comentario: '' }).success).toBe(true);
   });
 });
