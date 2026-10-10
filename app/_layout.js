@@ -14,6 +14,8 @@ export default function RootLayout() {
 
   const iniciar = useCallback(() => {
     inicializarBanco()
+      // Sessão persistente: se houver um id salvo, entra direto.
+      .then(() => useSession.getState().restaurar())
       .then(() => setEstado('pronto'))
       .catch((e) => {
         console.error('Falha ao abrir o banco de dados', e);

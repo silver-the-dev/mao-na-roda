@@ -1,16 +1,48 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
-import { Avatar, Button, ErrorState, LoadingState, Screen } from '../../src/components';
-import { useFocusQuery } from '../../src/hooks/useFocusQuery';
-import { listarUsuarios } from '../../src/repositories/users';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Button, Chip, Screen } from '../../src/components';
+import FormField from '../../src/components/FormField';
+import Notice from '../../src/components/Notice';
+import { SENHA_DEMO, USUARIOS_DEMO } from '../../src/db/seed';
+import { mensagemDeErro } from '../../src/domain/errors';
+import { autenticar } from '../../src/repositories/users';
+import { loginSchema } from '../../src/schemas/auth';
 import { useSession } from '../../src/store/session';
 import { colors, radius, spacing, typography } from '../../src/theme';
 
-// Etapa 2: login provisório escolhendo uma conta do banco.
-// O login com e-mail e senha entra na etapa 3.
 export default function LoginScreen() {
   const signIn = useSession((s) => s.signIn);
-  const { dados: usuarios, carregando, erro, recarregar } = useFocusQuery(listarUsuarios);
+  const [erro, setErro] = useState(/** @type {string | null} */ (null));
+
+  const {
+    control,
+    handleSubmit,
+    setValue,
+    formState: { isSubmitting },
+  } = useForm({
+    resolver: zodResolver(loginSchema),
+    defaultValues: { email: '', senha: '' },
+  });
+
+  const entrar = handleSubmit(async (dados) => {
+    setErro(null);
+    try {
+      const usuario = await autenticar(dados.email, dados.senha);
+      await signIn(usuario.id);
+    } catch (e) {
+      setErro(mensagemDeErro(e));
+    }
+  });
+
+  /** @param {string} email */
+  function preencherDemo(email) {
+    setValue('email', email, { shouldValidate: true });
+    setValue('senha', SENHA_DEMO, { shouldValidate: true });
+    setErro(null);
+  }
 
   return (
     <Screen scroll safeTop>
@@ -19,29 +51,42 @@ export default function LoginScreen() {
         <Text style={styles.tagline}>Alugue o que você precisa, por um preço justo.</Text>
       </View>
 
-      <Text style={styles.note}>
-        Login provisório: toque em uma conta para entrar. O login com e-mail e senha vem na etapa 3.
-      </Text>
+      {erro ? <Notice tipo="erro">{erro}</Notice> : null}
 
-      {carregando ? <LoadingState /> : null}
-      {erro ? <ErrorState message={erro} onRetry={recarregar} /> : null}
-      {usuarios?.map((u) => (
-        <Pressable
-          key={u.id}
-          onPress={() => signIn(u.id)}
-          accessibilityRole="button"
-          accessibilityLabel={`Entrar como ${u.nome}`}
-          style={({ pressed }) => [styles.conta, pressed && styles.pressed]}
-        >
-          <Avatar nome={u.nome} uri={u.foto_uri} size={48} />
-          <View style={styles.contaTexto}>
-            <Text style={typography.bodyStrong}>{u.nome}</Text>
-            <Text style={typography.small}>{u.email}</Text>
-          </View>
-        </Pressable>
-      ))}
+      <FormField
+        control={control}
+        name="email"
+        label="E-mail"
+        placeholder="seuemail@exemplo.com"
+        keyboardType="email-address"
+        autoCapitalize="none"
+        autoComplete="email"
+        autoCorrect={false}
+        returnKeyType="next"
+      />
+      <FormField
+        control={control}
+        name="senha"
+        label="Senha"
+        placeholder="Sua senha"
+        secureTextEntry
+        autoComplete="password"
+        returnKeyType="go"
+        onSubmitEditing={entrar}
+      />
 
+      <Button title="Entrar" icon="log-in-outline" onPress={entrar} loading={isSubmitting} />
       <Button title="Criar conta" variant="outline" onPress={() => router.push('/cadastro')} />
+
+      <View style={styles.demo}>
+        <Text style={typography.label}>Contas de demonstração</Text>
+        <Text style={typography.small}>Toque em um nome para preencher. Senha de todas: {SENHA_DEMO}</Text>
+        <View style={styles.demoChips}>
+          {USUARIOS_DEMO.map((u) => (
+            <Chip key={u.email} label={u.nome.split(' ')[0]} icon="person" onPress={() => preencherDemo(u.email)} />
+          ))}
+        </View>
+      </View>
     </Screen>
   );
 }
@@ -61,23 +106,16 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.textMuted,
   },
-  note: {
-    ...typography.small,
-  },
-  conta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    padding: spacing.md,
+  demo: {
+    gap: spacing.sm,
+    padding: spacing.lg,
     borderRadius: radius.lg,
-    borderWidth: 2,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.surfaceMuted,
+    marginTop: spacing.md,
   },
-  contaTexto: {
-    flex: 1,
-  },
-  pressed: {
-    borderColor: colors.primary,
+  demoChips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
   },
 });
