@@ -33,6 +33,7 @@ import { listarAvaliacoesDoAluguel } from '../../../src/repositories/reviews';
 import { useUsuarioId } from '../../../src/store/session';
 import { colors, radius, spacing, typography } from '../../../src/theme';
 import { formatBRL, formatDate, formatDateTime } from '../../../src/utils/format';
+import Mensagens from '../../../src/components/Mensagens';
 
 /** @typedef {import('../../../src/domain/rentalStatus').AcaoAluguel} AcaoAluguel */
 
@@ -273,6 +274,8 @@ export default function AluguelDetalheScreen() {
         </Card>
       ) : null}
 
+
+      <Mensagens aluguelId={a.id} />
     </Screen>
   );
 }
