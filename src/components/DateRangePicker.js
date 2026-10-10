@@ -81,6 +81,7 @@ export default function DateRangePicker({ value, onChange, bloqueados, minDate, 
   return (
     <View style={styles.wrapper}>
       <Calendar
+        testID="calendario"
         minDate={minDate}
         markingType="custom"
         markedDates={marcados}
